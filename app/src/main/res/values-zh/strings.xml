@@ -22,4 +22,7 @@
     <string name="enable">启用</string>
     <string name="disable">禁用</string>
     <string name="version">版本</string>
+    <string name="video_not_selected">未选择视频。</string>
+    <string name="video_preparing">正在准备视频…</string>
+    <string name="video_load_failed">无法加载该视频，请选择其他文件。</string>
 </resources>

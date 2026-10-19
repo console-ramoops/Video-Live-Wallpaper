@@ -23,6 +23,9 @@
     <string name="disable">Disable</string>
     <string name="version">Version</string>
     <string name="version_name" translatable="false">0.1.4.4_200811_nano</string>
+    <string name="video_not_selected">No video was selected.</string>
+    <string name="video_preparing">Preparing video…</string>
+    <string name="video_load_failed">Could not load that video. Please choose another file.</string>
     <!--preference-->
     <string name="preference_loop_video" translatable="false">loop_video</string>
     <string name="preference_play_video_with_sound" translatable="false">play_video_with_sound</string>

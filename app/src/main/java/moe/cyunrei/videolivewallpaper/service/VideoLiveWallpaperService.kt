@@ -10,6 +10,7 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -17,9 +18,11 @@ import android.os.PowerManager
 import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
+import moe.cyunrei.videolivewallpaper.utils.VideoSourceStore
 import moe.cyunrei.videolivewallpaper.utils.WallpaperSettings
 import java.io.File
 import java.io.IOException
+import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -50,6 +53,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         private var isPrepared = false
         private var visibleNow = false
+        private var sawVisibilityChange = false
         private var isCompleted = false
         private var isBatterySaverOn = false
         private var needsPlayOnceReset = false
@@ -112,30 +116,19 @@ class VideoLiveWallpaperService : WallpaperService() {
         }
 
         /**
-         * Reads the configured video path and verifies file existence on a
-         * background thread to avoid StrictMode disk-read violations.
+         * Reads the configured video source and validates it on a background
+         * thread to avoid StrictMode disk-read violations.
          */
         private fun readValidVideoPathAsync(onResult: (String?) -> Unit) {
             val generation = ++loadGeneration
             ioExecutor.execute {
-                val path = try {
-                    this@VideoLiveWallpaperService
-                        .openFileInput(VIDEO_FILE_NAME)
-                        .bufferedReader()
-                        .use { it.readText().trim() }
-                        .takeIf { it.isNotEmpty() }
-                } catch (e: IOException) {
-                    Log.w(TAG, "Could not read video path file", e)
-                    null
-                }
+                val path = VideoSourceStore.readSource(this@VideoLiveWallpaperService)
 
                 val validPath = path?.takeIf { candidate ->
-                    val file = File(candidate)
-                    if (file.isFile && file.canRead()) {
-                        true
-                    } else {
-                        Log.w(TAG, "Video file missing or unreadable: $candidate")
-                        false
+                    isSourceReadable(candidate).also { valid ->
+                        if (!valid) {
+                            Log.w(TAG, "Video source missing or unreadable: $candidate")
+                        }
                     }
                 }
 
@@ -144,6 +137,37 @@ class VideoLiveWallpaperService : WallpaperService() {
                         onResult(validPath)
                     }
                 }
+            }
+        }
+
+        /**
+         * Content URIs and remote streams are left for MediaPlayer to open.
+         * Local files must exist and be readable by this process.
+         */
+        private fun isSourceReadable(source: String): Boolean {
+            return when (Uri.parse(source).scheme?.lowercase(Locale.ROOT)) {
+                "http", "https", "rtsp", "rtmp" -> true
+                "content" -> true
+                "file" -> {
+                    val path = Uri.parse(source).path
+                    path != null && File(path).let { it.isFile && it.canRead() }
+                }
+
+                null -> File(source).let { it.isFile && it.canRead() }
+                else -> false
+            }
+        }
+
+        /** Chooses the right MediaPlayer data source for the saved source. */
+        private fun setPlayerDataSource(player: MediaPlayer, source: String) {
+            when (Uri.parse(source).scheme?.lowercase(Locale.ROOT)) {
+                "content" -> player.setDataSource(this@VideoLiveWallpaperService, Uri.parse(source))
+                "file" -> {
+                    val path = Uri.parse(source).path ?: throw IOException("Invalid file URI")
+                    player.setDataSource(path)
+                }
+
+                else -> player.setDataSource(source)
             }
         }
 
@@ -191,7 +215,7 @@ class VideoLiveWallpaperService : WallpaperService() {
                 try {
                     player.setAudioAttributes(audioAttributes)
                     // Order matters: setDataSource must precede setVideoScalingMode and prepareAsync
-                    player.setDataSource(validPath)
+                    setPlayerDataSource(player, validPath)
                     player.setSurface(surface)
                     player.setVideoScalingMode(
                         MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
@@ -203,7 +227,7 @@ class VideoLiveWallpaperService : WallpaperService() {
                             isPrepared = true
                             retryCount = 0
                             applyPlayerSettings(prepared)
-                            if (visibleNow && !isBatterySaverOn) {
+                            if ((visibleNow || !sawVisibilityChange) && !isBatterySaverOn) {
                                 startPlayback()
                             }
                         }
@@ -241,6 +265,7 @@ class VideoLiveWallpaperService : WallpaperService() {
             super.onVisibilityChanged(visible)
             val wasVisible = visibleNow
             visibleNow = visible
+            sawVisibilityChange = true
 
             if (visible) {
                 if (!wasVisible || needsPlayOnceReset) {
@@ -296,13 +321,15 @@ class VideoLiveWallpaperService : WallpaperService() {
 
         private fun applySettings() {
             readValidVideoPathAsync { newPath ->
-                if (newPath != currentVideoPath) {
+                val player = mediaPlayer
+                // A player reload may have released the current instance while
+                // this read was in flight; restart it instead of doing nothing.
+                if (newPath != currentVideoPath || player == null) {
                     retryCount = 0
                     initPlayer()
                     return@readValidVideoPathAsync
                 }
 
-                val player = mediaPlayer ?: return@readValidVideoPathAsync
                 if (!isPrepared) return@readValidVideoPathAsync
 
                 applyPlayerSettings(player)
@@ -442,7 +469,6 @@ class VideoLiveWallpaperService : WallpaperService() {
 
     companion object {
         private const val TAG = "VideoLiveWallpaperSvc"
-        private const val VIDEO_FILE_NAME = "video_live_wallpaper_file_path"
         private const val ACTION_SETTINGS_CHANGED =
             "moe.cyunrei.videolivewallpaper.SETTINGS_CHANGED"
 

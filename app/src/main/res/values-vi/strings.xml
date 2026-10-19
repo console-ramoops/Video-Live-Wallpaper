@@ -22,4 +22,7 @@
     <string name="enable">BẬT</string>
     <string name="disable">TẮT</string>
     <string name="version">Phiên bản</string>
+    <string name="video_not_selected">Chưa chọn video.</string>
+    <string name="video_preparing">Đang chuẩn bị video…</string>
+    <string name="video_load_failed">Không thể tải video. Vui lòng chọn tệp khác.</string>
 </resources>
