@@ -56,7 +56,12 @@ class VideoLiveWallpaperService : WallpaperService() {
         private var sawVisibilityChange = false
         private var isCompleted = false
         private var isBatterySaverOn = false
-        private var needsPlayOnceReset = false
+
+        // Preserved across player releases so a surface destroyed by another
+        // app does not force the video back to the start. Screen-off clears
+        // this state explicitly in rewindToFirstFrame().
+        private var resumePositionMs = 0
+        private var resumeCompleted = false
 
         private var retryCount = 0
         private var loadGeneration = 0
@@ -153,7 +158,7 @@ class VideoLiveWallpaperService : WallpaperService() {
          */
         private fun isSourceReadable(source: String): Boolean {
             return when (Uri.parse(source).scheme?.lowercase(Locale.ROOT)) {
-                "http", "https", "rtsp", "rtmp" -> true
+                "http", "https", "rtsp" -> true
                 "content" -> true
                 "file" -> {
                     val path = Uri.parse(source).path
@@ -209,13 +214,19 @@ class VideoLiveWallpaperService : WallpaperService() {
             readValidVideoPathAsync { validPath ->
                 if (validPath == null) {
                     currentVideoPath = null
+                    clearResumeState()
                     return@readValidVideoPathAsync
+                }
+
+                if (validPath != currentVideoPath) {
+                    // A different source always starts from the beginning.
+                    currentVideoPath = validPath
+                    clearResumeState()
                 }
 
                 val surface = surfaceHolder.surface
                 if (surface == null || !surface.isValid) return@readValidVideoPathAsync
 
-                currentVideoPath = validPath
                 val player = MediaPlayer()
                 mediaPlayer = player
 
@@ -234,6 +245,7 @@ class VideoLiveWallpaperService : WallpaperService() {
                             isPrepared = true
                             retryCount = 0
                             applyPlayerSettings(prepared)
+                            restorePlaybackState(prepared)
                             if ((visibleNow || !sawVisibilityChange) && !isBatterySaverOn) {
                                 startPlayback()
                             }
@@ -251,6 +263,7 @@ class VideoLiveWallpaperService : WallpaperService() {
                         if (failed === mediaPlayer) {
                             Log.e(TAG, "MediaPlayer error (what=$what, extra=$extra)")
                             releasePlayer()
+                            clearResumeState()
                             if (retryCount < MAX_RETRIES) {
                                 retryCount++
                                 Log.w(TAG, "Retrying player initialization ($retryCount/$MAX_RETRIES)")
@@ -264,26 +277,21 @@ class VideoLiveWallpaperService : WallpaperService() {
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to initialize MediaPlayer for path: $validPath", e)
                     releasePlayer()
+                    clearResumeState()
                 }
             }
         }
 
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
-            val wasVisible = visibleNow
             visibleNow = visible
             sawVisibilityChange = true
 
             if (visible) {
-                if (!wasVisible || needsPlayOnceReset) {
-                    resetForPlayOnce()
-                    needsPlayOnceReset = false
-                }
                 if (!isBatterySaverOn) {
                     startPlayback()
                 }
             } else {
-                needsPlayOnceReset = true
                 pausePlayback()
                 // Fallback for devices that do not deliver ACTION_SCREEN_OFF
                 // before hiding the wallpaper.
@@ -294,19 +302,12 @@ class VideoLiveWallpaperService : WallpaperService() {
         }
 
         /**
-         * In play-once mode, rewind to the first frame whenever the wallpaper
-         * becomes visible again.
-         */
-        private fun resetForPlayOnce() {
-            if (WallpaperSettings.isLoopingEnabled(this@VideoLiveWallpaperService)) return
-            rewindToFirstFrame()
-        }
-
-        /**
          * Moves playback back to the first frame. Called as soon as the screen
          * turns off so waking the device starts from the beginning.
          */
         private fun rewindToFirstFrame() {
+            clearResumeState()
+
             val player = mediaPlayer ?: return
             if (!isPrepared) return
 
@@ -315,6 +316,62 @@ class VideoLiveWallpaperService : WallpaperService() {
                 player.seekTo(0)
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Failed to rewind video to the first frame", e)
+            }
+        }
+
+        /**
+         * Remembers where playback was before the player is released, so a
+         * player recreated after the surface was destroyed (for example while
+         * another app is open) continues instead of restarting.
+         */
+        private fun capturePlaybackState() {
+            val player = mediaPlayer ?: return
+            if (!isPrepared) return
+
+            resumeCompleted = isCompleted
+            resumePositionMs = if (isCompleted) {
+                0
+            } else {
+                try {
+                    player.currentPosition
+                } catch (e: IllegalStateException) {
+                    Log.e(TAG, "Failed to read playback position", e)
+                    0
+                }
+            }
+        }
+
+        private fun clearResumeState() {
+            resumePositionMs = 0
+            resumeCompleted = false
+        }
+
+        /** Restores a preserved position after a player has been prepared. */
+        private fun restorePlaybackState(player: MediaPlayer) {
+            if (resumeCompleted && !player.isLooping) {
+                // The video already finished: show its last frame and stay put.
+                isCompleted = true
+                val duration = try {
+                    player.duration
+                } catch (e: IllegalStateException) {
+                    -1
+                }
+                if (duration > 0) {
+                    try {
+                        player.seekTo(duration)
+                    } catch (e: IllegalStateException) {
+                        Log.e(TAG, "Failed to seek to the last frame", e)
+                    }
+                }
+                return
+            }
+
+            if (resumePositionMs > 0) {
+                try {
+                    player.seekTo(resumePositionMs)
+                } catch (e: IllegalStateException) {
+                    Log.e(TAG, "Failed to restore playback position", e)
+                }
             }
         }
 
@@ -463,6 +520,7 @@ class VideoLiveWallpaperService : WallpaperService() {
         }
 
         private fun releasePlayer() {
+            capturePlaybackState()
             abandonAudioFocus()
             isPrepared = false
             isCompleted = false

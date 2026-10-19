@@ -8,4 +8,6 @@
     <color name="text_secondary">#8A8A8A</color>
     <color name="accent">#3DDC84</color>
     <color name="button_ripple">#33FFFFFF</color>
+    <!-- Launcher icon background (adaptive icon layer). -->
+    <color name="ic_launcher_background">#3DDC84</color>
 </resources>

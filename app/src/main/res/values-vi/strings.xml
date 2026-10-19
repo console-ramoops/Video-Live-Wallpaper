@@ -14,7 +14,7 @@
     <string name="settings">Cài Đặt</string>
     <string name="loop_video">Lặp lại video</string>
     <string name="loop_video_summary_on">Phát liên tục</string>
-    <string name="loop_video_summary_off">Phát một lần mỗi lần hình nền xuất hiện</string>
+    <string name="loop_video_summary_off">Phát một lần mỗi khi bật màn hình</string>
     <string name="play_video_with_sound">Phát video kèm âm thanh</string>
     <string name="hide_icon_from_launcher">Ẩn biểu tượng khỏi launcher</string>
     <string name="hide">ẨN</string>

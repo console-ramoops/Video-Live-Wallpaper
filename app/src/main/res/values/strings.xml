@@ -14,7 +14,7 @@
     <string name="settings">Settings</string>
     <string name="loop_video">Loop video</string>
     <string name="loop_video_summary_on">Play continuously</string>
-    <string name="loop_video_summary_off">Play once each time the wallpaper appears</string>
+    <string name="loop_video_summary_off">Play once each time the screen turns on</string>
     <string name="play_video_with_sound">Play video with sound</string>
     <string name="hide_icon_from_launcher">Hide icon from launcher</string>
     <string name="hide">Hide</string>
@@ -22,7 +22,7 @@
     <string name="enable">Enable</string>
     <string name="disable">Disable</string>
     <string name="version">Version</string>
-    <string name="version_name" translatable="false">0.1.4.4_200811_nano</string>
+    <string name="version_name" translatable="false">0.1.4.6-nano</string>
     <string name="video_not_selected">No video was selected.</string>
     <string name="video_preparing">Preparing video…</string>
     <string name="video_load_failed">Could not load that video. Please choose another file.</string>

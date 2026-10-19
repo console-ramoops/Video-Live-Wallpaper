@@ -120,7 +120,7 @@ object VideoSourceStore {
 
     fun isRemoteSource(source: String): Boolean {
         return when (Uri.parse(source).scheme?.lowercase(Locale.ROOT)) {
-            "http", "https", "rtsp", "rtmp" -> true
+            "http", "https", "rtsp" -> true
             else -> false
         }
     }

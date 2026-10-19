@@ -14,7 +14,7 @@
     <string name="settings">设置</string>
     <string name="loop_video">循环播放视频</string>
     <string name="loop_video_summary_on">持续循环播放</string>
-    <string name="loop_video_summary_off">每次壁纸显示时播放一次</string>
+    <string name="loop_video_summary_off">每次点亮屏幕时播放一次</string>
     <string name="play_video_with_sound">开启壁纸音乐</string>
     <string name="hide_icon_from_launcher">隐藏应用图标</string>
     <string name="hide">隐藏</string>
