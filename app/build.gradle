@@ -10,10 +10,10 @@ android {
 
     defaultConfig {
         applicationId = "moe.cyunrei.videolivewallpaper"
-        minSdk = 21
-        targetSdk = 32
+        minSdk = 24
+        targetSdk = 37
         versionCode = 2
-        versionName = "0.1.4.4_200811_nano"
+        versionName = "0.1.4.5-nano"
     }
 
     buildTypes {
