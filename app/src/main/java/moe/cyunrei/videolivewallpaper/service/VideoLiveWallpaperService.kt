@@ -88,6 +88,7 @@ class VideoLiveWallpaperService : WallpaperService() {
 
             val intentFilter = IntentFilter().apply {
                 addAction(ACTION_SETTINGS_CHANGED)
+                addAction(Intent.ACTION_SCREEN_OFF)
                 addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
             }
 
@@ -95,6 +96,12 @@ class VideoLiveWallpaperService : WallpaperService() {
                 override fun onReceive(context: Context, intent: Intent) {
                     when (intent.action) {
                         ACTION_SETTINGS_CHANGED -> applySettings()
+                        Intent.ACTION_SCREEN_OFF -> {
+                            // Rewind while the screen is off so the first frame
+                            // is ready as soon as the wallpaper is shown again.
+                            pausePlayback()
+                            rewindToFirstFrame()
+                        }
                         PowerManager.ACTION_POWER_SAVE_MODE_CHANGED -> {
                             isBatterySaverOn = powerManager.isPowerSaveMode
                             if (isBatterySaverOn) {
@@ -278,6 +285,11 @@ class VideoLiveWallpaperService : WallpaperService() {
             } else {
                 needsPlayOnceReset = true
                 pausePlayback()
+                // Fallback for devices that do not deliver ACTION_SCREEN_OFF
+                // before hiding the wallpaper.
+                if (!powerManager.isInteractive) {
+                    rewindToFirstFrame()
+                }
             }
         }
 
@@ -286,15 +298,23 @@ class VideoLiveWallpaperService : WallpaperService() {
          * becomes visible again.
          */
         private fun resetForPlayOnce() {
+            if (WallpaperSettings.isLoopingEnabled(this@VideoLiveWallpaperService)) return
+            rewindToFirstFrame()
+        }
+
+        /**
+         * Moves playback back to the first frame. Called as soon as the screen
+         * turns off so waking the device starts from the beginning.
+         */
+        private fun rewindToFirstFrame() {
             val player = mediaPlayer ?: return
             if (!isPrepared) return
-            if (WallpaperSettings.isLoopingEnabled(this@VideoLiveWallpaperService)) return
 
             isCompleted = false
             try {
                 player.seekTo(0)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Failed to seek to start in play-once mode", e)
+                Log.e(TAG, "Failed to rewind video to the first frame", e)
             }
         }
 
