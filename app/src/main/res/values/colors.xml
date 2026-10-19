@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- True black keeps AMOLED panels dark and saves power. -->
+    <color name="background">#000000</color>
+    <color name="surface">#0A0A0A</color>
+    <color name="surface_stroke">#242424</color>
+    <color name="text_primary">#F2F2F2</color>
+    <color name="text_secondary">#8A8A8A</color>
+    <color name="accent">#3DDC84</color>
+    <color name="button_ripple">#33FFFFFF</color>
+</resources>

@@ -2,24 +2,32 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <PreferenceCategory android:title="@string/wallpaper_settings">
         <SwitchPreference
+            android:defaultValue="true"
+            android:key="loop_video"
+            android:persistent="false"
+            android:summaryOff="@string/loop_video_summary_off"
+            android:summaryOn="@string/loop_video_summary_on"
+            android:title="@string/loop_video" />
+        <SwitchPreference
             android:defaultValue="false"
             android:key="play_video_with_sound"
-            android:title="@string/play_video_with_sound"
+            android:persistent="false"
             android:summaryOff="@string/disable"
-            android:summaryOn="@string/enable"/>/>
+            android:summaryOn="@string/enable"
+            android:title="@string/play_video_with_sound" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/applications_settings">
-    <SwitchPreference
-        android:defaultValue="false"
-        android:key="hide_icon_from_launcher"
-        android:title="@string/hide_icon_from_launcher"
-        android:summaryOff="@string/show"
-        android:summaryOn="@string/hide"/>
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="hide_icon_from_launcher"
+            android:persistent="false"
+            android:summaryOff="@string/show"
+            android:summaryOn="@string/hide"
+            android:title="@string/hide_icon_from_launcher" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/about">
         <Preference
             android:title="@string/version"
-            android:summary="@string/version_name"
-            />
+            android:summary="@string/version_name" />
     </PreferenceCategory>
 </PreferenceScreen>
