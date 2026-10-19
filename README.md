@@ -40,9 +40,9 @@ A tiny, battery-conscious video live wallpaper for Android. Pick a video, apply 
 - A video the device can decode (H.264/AVC is the safest choice; H.265/HEVC, VP9, and others depend on the device).
 - AOSP-based Android works best. Some heavily customized OEM ROMs aggressively stop or restrict wallpaper services.
 
-![Preview](preview.gif)
-
 ## Usage
+
+![Preview](preview.gif)
 
 1. Open **VideoLiveWallpaper**.
 2. Choose a source:
@@ -80,7 +80,7 @@ Unsupported schemes are rejected with a toast. Cleartext HTTP is allowed for rem
 | --- | --- |
 | `SET_WALLPAPER` | Applying the live wallpaper. |
 | `INTERNET` | Playing remote `http`/`https`/`rtsp` streams. |
-| `READ_EXTERNAL_STORAGE` | Manual file paths on Android 7.0–12L (`maxSdkVersion="32"`). |
+| `READ_EXTERNAL_STORAGE` | Manual file paths on Android 7.0–12L. |
 | `READ_MEDIA_VIDEO` | Manual file paths on Android 13+, requested only when **Add Video File Path** is tapped. |
 
 The system video picker does **not** require a storage permission: the selected URI is read once and copied into app-private storage. The wallpaper service is protected by the system-enforced `BIND_WALLPAPER` permission.
