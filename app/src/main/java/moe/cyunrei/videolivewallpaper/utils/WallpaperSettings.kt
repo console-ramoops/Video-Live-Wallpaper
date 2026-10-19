@@ -21,7 +21,7 @@ object WallpaperSettings {
         setMarker(context, SOUND_MARKER, enabled)
     }
 
-    /** Looping is on by default. The marker means "play once, then stop". */
+    /** Looping is on by default. The marker means "play once per appearance". */
     fun isLoopingEnabled(context: Context): Boolean =
         !marker(context, PLAY_ONCE_MARKER).exists()
 
